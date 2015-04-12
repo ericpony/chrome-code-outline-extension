@@ -1,0 +1,72 @@
+.sh {
+    display: block;
+    overflow: visible;
+    font-family: Consolas, "Lucida Console", "Courier New";
+    font-size: .8em;
+    line-height: 1.5em;
+    color: black;
+    width: auto;
+    xfont-size: 12pt;
+    xmargin: .5em 2em .5em 2em;
+    xmargin-top: 2em;
+    xmargin-bottom: 2em;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+/* code title */
+.sh .bar {
+color: black;
+    background-color: #CDF5D9;
+    border: 1px solid lightgray;
+    border-bottom: 0;
+    border-radius: 8px;
+    xborder-top-right-radius: 8px;
+    xborder-top-left-radius: 8px;
+    padding-left: 1em;
+    line-height: 2em;
+}
+
+/* line number + content */
+.sh ol {
+    color: silver;
+    background-color: #FAFAFA;
+    list-style: decimal outside !important;
+		margin: 1em;
+    border: 1px solid lightgray;
+    xborder-bottom-left-radius: 8px;
+    xborder-bottom-right-radius: 8px;
+    border-radius: 6px;
+    overflow: visible;
+}
+.sh ol li {
+    margin-left: .5em; /* line number */
+    border-top: 1px dotted lightgray;
+}
+.sh ol li:first-child {
+    border: 0;
+}
+.sh ul {
+    list-style-type: none;
+    padding: 0 1.5em !important;
+    overflow: visible;
+    margin: 1em !important;
+    margin-left: 0 !important;
+}
+.sh ul li {
+    xmargin-top: .07em;
+    xmargin-bottom: .07em;
+}
+.sh .code {color: darkblue; white-space: nowrap;}
+.sh .comment {color: #008200;} 
+.sh .comments {color: #008200;}
+.sh .string {color: brown;}
+.sh .char {color: brown;}
+.sh .macro {color: gray;}
+.sh .type {color: #069;}
+.sh .keyword {color: blue;}
+.sh .built-in {color: purple;}
+.sh .nominal {color: purple; cursor: pointer;}
+.sh .symbol {color: #0A0;}
+.sh .constant {color: green;}
+.sh .value, .sh .hex {color: brown;}

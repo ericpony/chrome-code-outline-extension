@@ -1,0 +1,19 @@
+{
+  "name": "GitHub Code Outline Viewer",
+  "version": "0.1",
+  "description": "An extension to generate code outline for GitHub",
+  "content_scripts": [{
+		"matches": ["https://github.com/*"],
+		"js": ["lib/jquery-1.11.2.min.js", "outliner.js"],
+    "css": ["lib/highlight.simple.css"],
+		"run_at": "document_start"
+	}],  
+  "background": {"scripts": ["background.js"] }, 
+  "manifest_version": 2,
+  "permissions": ["tabs", "contextMenus", "https://github.com/*"],
+  "icons" : {
+    	"16" : "media/icon.png",
+    	"48" : "media/icon.png",
+    	"128" : "media/icon.png"
+	} 
+}
