@@ -60,6 +60,7 @@ color: black;
 .sh .code {color: darkblue; white-space: nowrap;}
 .sh .comment {color: #008200;} 
 .sh .comments {color: #008200;}
+.sh .regex {color: #795da3;}
 .sh .string {color: brown;}
 .sh .char {color: brown;}
 .sh .macro {color: gray;}
@@ -70,3 +71,4 @@ color: black;
 .sh .symbol {color: #0A0;}
 .sh .constant {color: green;}
 .sh .value, .sh .hex {color: brown;}
+.sh .reference {color: #6655ee; cursor: pointer;}

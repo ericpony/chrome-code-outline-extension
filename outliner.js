@@ -16,19 +16,21 @@
   if(!lang) return;
 
   var STYLE = {// CSS classes
-    keyword:  'keyword',
-    type:     'type',
-    built_in: 'built-in',
-    nominal:  'nominal',
-    string:   'string',
-    comment:  'comment',  // single line
-    comments: 'comments', // block
-    character:'char',
-    hex_value:'hex',
-    numeric:  'value',
-    macro:    'macro',
-    symbol:   'symbol',
-    constant: 'constant'
+    keyword:   'keyword',
+    type:      'type',
+    built_in:  'built-in',
+    nominal:   'nominal',
+    string:    'string',
+    comment:   'comment',  // single line
+    comments:  'comments', // block
+    regexp:    'regex',
+    character: 'char',
+    hex_value: 'hex',
+    numeric:   'value',
+    macro:     'macro',
+    symbol:    'symbol',
+    constant:  'constant',
+    reference: 'reference'
   };
 
   var LANG = {
@@ -103,9 +105,9 @@
           keyword:   'new in if for while finally yield do return void else break catch instanceof with throw case default try this switch continue typeof delete let yield const class',
           built_in:  'eval isFinite isNaN parseFloat parseInt decodeURI decodeURIComponent encodeURI encodeURIComponent escape unescape arguments require',
           ref_ctor:  /\b(?:(var|let)\s+([$\w]+)|(function\*?)\b\s*([$\w]*)\s*(\([^)]*\))|()([\w$]+)(?=:))/g,
-          comment:  { r: /\/\/.*$/gm,                  css: STYLE.comment,          p:0 },
-          comments: { r: /\/\*[\s\S]*?\*\//gm,         css: STYLE.comments,         p:0 },
-          reg_expr: { r: /\/(?:\\.|[^\/])+\/[a-z]*/g,  style: { color: 'green'},    p:0 },
+          comment:  { r: /\/\/.*$/gm,                  css: STYLE.comment,   p:0 },
+          comments: { r: /\/\*[\s\S]*?\*\//gm,         css: STYLE.comments,  p:0 },
+          reg_expr: { r: /\/(?:\\.|[^\/])+\/[a-z]*/g,  css: STYLE.regexp,    p:0 },
           self_ref: (function (){
             var regex = /\bthis\.([$\w]+)/g;
             return {
@@ -221,7 +223,7 @@
       var name = scope.id + '-' + nominals[0];
       var attr = create_link(name);
       //attr.className = cache.syntax.type_ctor.css + ' ' + name;
-      attr.className = STYLE.type + ' ' + name;
+      attr.className = STYLE.nominal + ' ' + name;
       attr.name      = name;
       colorize(nominals[0], undefined, undefined, attr);
       Scopes.add_nominal(nominals[0]);
@@ -269,7 +271,7 @@
         if(syntax.type)      syntax.type      = { r: regexp(syntax.type),     css: STYLE.type,     p: 1 };
         if(syntax.built_in)  syntax.built_in  = { r: regexp(syntax.built_in), css: STYLE.built_in, p: 0 };
         if(syntax.type_ctor) syntax.type_ctor = { r: syntax.type_ctor,        css: STYLE.type,     p: 3, update: create_nominal };
-        if(syntax.ref_ctor)  syntax.ref_ctor  = { r: syntax.ref_ctor,         css: STYLE.nominal,  p: 3, update: create_nominal };
+        if(syntax.ref_ctor)  syntax.ref_ctor  = { r: syntax.ref_ctor,         css: STYLE.reference,p: 3, update: create_nominal };
         LANG[lang].processed = true;
       }
       return syntax;
@@ -480,6 +482,10 @@
   }
 
   function create_highlighted_code(code, attr, options) {
+
+    var div = document.querySelector('.blob-wrapper');
+    if(!div) return;
+
     var startTime = timer();
     options = options || {};
     cache = extend({}, attr);
@@ -498,17 +504,15 @@
                //console.log(text);
     parse(code);
 
-    var div = document.querySelector('.blob-wrapper');
-    div.className = 'sh';
-
     if(cache.line && cache.line.innerHTML)
-      cache.codeArea.appendChild(cache.line.parentNode);
+      cache.codeArea.appendChild(cache.line);
 
+    div.className = 'sh';
     div.elapsedTime = timer() - startTime;
   }
 
   Scopes.nominal = {
-    css:    STYLE.nominal,
+    css:    STYLE.reference,
     update: function(nominals, scope) {
       var scope = Scopes.lookup(nominals[0], scope);
       //if(!scope) return create_nominal(nominals);
@@ -535,7 +539,7 @@
   function outline() {
     var code = '';
     var lines = document.querySelectorAll('.blob-code');
-    if(!lines || outline.done) return;
+    if(!lines.length || outline.done) return;
     outline.done = true;
 
     LANG[lang].syntax = create_syntax(lang);
