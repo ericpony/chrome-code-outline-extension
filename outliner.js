@@ -101,7 +101,9 @@
     },
     'JavaScript': { // incomplete
         regex: {
-          type:      'Object Function Boolean Error EvalError InternalError RangeError ReferenceError StopIteration SyntaxError TypeError URIError Number Math Date String RegExp Array Float32Array Float64Array Int16Array Int32Array Int8Array Uint16Array Uint32Array Uint8Array Uint8ClampedArray ArrayBuffer DataView JSON Intl',
+          //type:      'Object Function Boolean Error EvalError InternalError RangeError ReferenceError StopIteration SyntaxError TypeError URIError Number Math Date String RegExp Array Float32Array Float64Array Int16Array Int32Array Int8Array Uint16Array Uint32Array Uint8Array Uint8ClampedArray ArrayBuffer DataView JSON Intl',
+          type:      /\b[$_]*[A-Z][$\w]*\b/g, // all literals with leading capital
+          constant:  { r: /\b(?:true|false|null|undefined|NaN)\b/g, css: STYLE.symbol, p: 0 },
           keyword:   'new in if for while finally yield do return void else break catch instanceof with throw case default try this switch continue typeof delete let yield const class',
           built_in:  'eval isFinite isNaN parseFloat parseInt decodeURI decodeURIComponent encodeURI encodeURIComponent escape unescape arguments require',
           ref_ctor:  /\b(?:(var|let)\s+([$\w]+)|(function\*?)\b\s*([$\w]*)\s*(\([^)]*\))|()([\w$]+)(?=:))/g,
@@ -391,8 +393,6 @@
         if(debug_mode) console.log(cache.line.innerText);
       }
       if(i+1 < lines.length) {
-        // FF need insert '&nbsp;' to make empty <li> displayed
-        if(cache.line.innerHTML == '') cache.line.innerHTML = '&nbsp;';
         cache.codeArea.appendChild(cache.line);
         cache.line = null;
       }
@@ -510,6 +510,18 @@
     div.className = 'sh';
     div.elapsedTime = timer() - startTime;
   }
+  var ref_click_handler = function(e) {
+    var name = e.target.title || e.target.parentNode.title;
+    if(!name) return;
+    location.href = '#' + name;
+    var node = document.querySelector('[name=' + name + ']').parentNode.parentNode;
+    node.style.transition = '';
+    node.style.backgroundColor = '#FF0';
+    setTimeout(function() {
+      node.style.transition = 'background .5s ease-in-out';
+      node.style.backgroundColor = '';
+    }, 10);
+  };
 
   Scopes.nominal = {
     css:    STYLE.reference,
@@ -519,28 +531,22 @@
       if(!scope) { colorize(nominals[0]); return false }
       var name = scope.id + '-' + nominals[0];
       attr = create_link(name);
-      attr.className = Scopes.nominal.css + ' ' + name,
-      attr.onclick   = function(e) {
-        location.href = '#' + name;
-        var node = document.querySelector('[name=' + name + ']').parentNode.parentNode;
-        node.style.transition = '';
-        node.style.backgroundColor = '#FF0';
-        setTimeout(function() {
-          node.style.transition = 'background .5s ease-in-out';
-          node.style.backgroundColor = '';
-        }, 10);
-      };
+      attr.title     = name;
+      attr.className = Scopes.nominal.css + ' link ' + name;
+      attr.onclick   = ref_click_handler;
       colorize(nominals[0], undefined, undefined, attr);
       return false;
     },
     p: 2
   };
 
-  function outline() {
+  function init() {
     var code = '';
     var lines = document.querySelectorAll('.blob-code');
-    if(!lines.length || outline.done) return;
-    outline.done = true;
+    if(!lines.length || init.done) return;
+    init.done = true;
+
+    //////////////////////////////////////////////////
 
     LANG[lang].syntax = create_syntax(lang);
     LANG[lang].lexers = (function(SYNTAX) {
@@ -561,8 +567,25 @@
       if(line != "\n") code += "\n";
     }
     create_highlighted_code(code, LANG[lang], undefined);
-  }
-  document.addEventListener('DOMContentLoaded', outline, false);
 
-  outline(); // for invocation from context menu
+    //////////////////////////////////////////////////
+
+    var show_selected = function(e) {
+      var text = window.getSelection().toString().trim();
+      if(!text) return;
+      text = text.replace(/([{}()[\]\\.?*+^$|=!:~-])/g, '\\$1'); // escape
+      var regex1 = /<\/?mark>/g;
+      var regex2 = new RegExp('>([^<]*)(' + text + ')([^<]*)<', 'g');
+      $('.blob-code').each(function(i, elem) {
+        elem.innerHTML = elem.innerHTML.replace(regex1, '').replace(regex2, '>$1<mark>$2</mark>$3<');
+      });
+      $('.sh .link').click(ref_click_handler);
+    }
+    $(".sh").on('mouseup', show_selected);
+
+    //////////////////////////////////////////////////
+  }
+  document.addEventListener('DOMContentLoaded', init, false);
+
+  init(); // for invocation from context menu
 })();
