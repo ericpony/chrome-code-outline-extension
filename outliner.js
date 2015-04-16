@@ -42,13 +42,13 @@
           comment:  { r: /\/\/.*$/gm,            css: STYLE.comment,   p:0 },
           comments: { r: /\/\*[\s\S]*?\*\//gm,   css: STYLE.comments,  p:0 },
           type_ctor: /\b(?:()([\w$]+)(?=\s*:)|()([$\w]+)(?=\s*<-))/g,
-          ref_ctor: (function(){
+          ref_ctor: (function() {
             var regex = /(val|var|def|object|trait|class|type)\s+([$\w]+)/g;
             return {
               lastIndex: 0,
               parse: function(text, pos, begin_mark, end_mark, createScope) {
                 var spaces = '';
-                while(text[pos] == ' '){ spaces+=' '; pos++; }
+                while(text[pos] == ' ') { spaces+=' '; pos++; }
                 colorize(spaces);
                 if(text[pos]==begin_mark) {
                   if(createScope) Scopes.create(false, true);
@@ -110,7 +110,7 @@
           comment:  { r: /\/\/.*$/gm,                  css: STYLE.comment,   p:0 },
           comments: { r: /\/\*[\s\S]*?\*\//gm,         css: STYLE.comments,  p:0 },
           reg_expr: { r: /\/(?:\\.|[^\/])+\/[a-z]*/g,  css: STYLE.regexp,    p:0 },
-          self_ref: (function (){
+          self_ref: (function () {
             var regex = /\bthis\.([$\w]+)/g;
             return {
               css: STYLE.keyword,
@@ -192,8 +192,14 @@
 
   function extend(origin, more) {
     if(!origin || !more) return origin;
-    for(var name in more)
-      if(more.hasOwnProperty(name)) origin[name] = more[name];
+    for(var name in more) {
+      if(more.hasOwnProperty(name)) {
+        if(name[0]=='_' && !!origin.dataset)
+          origin.dataset[name.slice(1)] = more[name];
+        else
+          origin[name] = more[name];
+      }
+    }
     return origin;
   }
   function timer() {
@@ -201,23 +207,15 @@
     if(Date.now) return Date.now();
     return new Date().getTime()*1000;
   }
-  Object.prototype.extendWith = function(more){ return extend(this, more) }
+  Object.prototype.extendWith = function(more) { return extend(this, more) }
 
-  var create_link = (function() {
-    function lighten(name, on) {
-      var elems = document.querySelectorAll('.' + name);
-      for(var i=0; i<elems.length; i++) {
-        elems[i].style.fontWeight = on ? 'bolder' : '';
-        elems[i].style.backgroundColor = on ? 'yellow' : '';
-      }
-    }
-    return function(name) {
-      return {
-        onmouseover:  function(e) { lighten(name, true)  },
-        onmouseleave: function(e) { lighten(name, false) }
-      }
-    }
-  })();
+  function create_link(name) {
+    return {
+      _anchor      : name,
+      onmouseover  : ref_hover_handler(true),
+      onmouseleave : ref_hover_handler(false)
+    };
+  }
 
   function create_nominal(nominals) {
     if(nominals[0]) {
@@ -404,8 +402,8 @@
 
     var last_index = 0, attr;
     var lexers = cache.lexers;
-    var matches = lexers.map(function(){ return 0 });
-    var states = lexers.map(function(lexer){ return lexer.r.lastIndex });
+    var matches = lexers.map(function() { return 0 });
+    var states = lexers.map(function(lexer) { return lexer.r.lastIndex });
     var tokens = [];
 
     while(true) {
@@ -454,7 +452,7 @@
       last_index = lexers[ii].r.lastIndex;
       attr = undefined;
     }// end of while
-    states.forEach(function(s,i){ lexers[i].r.lastIndex = s });
+    states.forEach(function(s,i) { lexers[i].r.lastIndex = s });
   }
 
   function parse_block(text, begin_pos, begin_mark, end_mark) {
@@ -510,10 +508,12 @@
     div.className = 'sh';
     div.elapsedTime = timer() - startTime;
   }
+
   var ref_click_handler = function(e) {
-    var name = e.target.title || e.target.parentNode.title;
+
+    var name = e.target.dataset.anchor || e.target.parentNode.dataset.anchor;
     if(!name) return;
-    location.href = '#' + name;
+
     var node = document.querySelector('[name=' + name + ']').parentNode.parentNode;
     node.style.transition = '';
     node.style.backgroundColor = '#FF0';
@@ -521,7 +521,22 @@
       node.style.transition = 'background .5s ease-in-out';
       node.style.backgroundColor = '';
     }, 10);
+
+    location.href = '#' + name;
   };
+
+  var ref_hover_handler = (function() {
+    function lighten(name, on) {
+      var elems = document.querySelectorAll('.' + name);
+      for(var i=0; i<elems.length; i++) {
+        elems[i].style.fontWeight = on ? 'bolder' : '';
+        elems[i].style.backgroundColor = on ? 'yellow' : '';
+      }
+    }
+    return function(on) {
+      return function(e) { lighten(e.target.dataset.anchor, on) }
+    }
+  })();
 
   Scopes.nominal = {
     css:    STYLE.reference,
@@ -531,9 +546,8 @@
       if(!scope) { colorize(nominals[0]); return false }
       var name = scope.id + '-' + nominals[0];
       attr = create_link(name);
-      attr.title     = name;
+      attr.onclick = ref_click_handler;
       attr.className = Scopes.nominal.css + ' link ' + name;
-      attr.onclick   = ref_click_handler;
       colorize(nominals[0], undefined, undefined, attr);
       return false;
     },
@@ -570,18 +584,86 @@
 
     //////////////////////////////////////////////////
 
+    $.noConflict()
+
+    var Markers = (function() {
+      var marker_width  = 20;
+      var marker_height = 8;
+      var marker_colors = ['#8822FF', '#8888FF', '#8888AA', '#888844'];
+      var color_ptr = 0;
+      var scaled_offset = function(top, left) {
+        top  = Math.round(document.documentElement.clientHeight * top / document.body.clientHeight);
+        left = Math.round(document.documentElement.clientWidth * left / document.body.clientWidth);
+        return [top, left];
+      };
+      var marker_click_handler = function(e) {
+        //jQuery('#L' + e.target.title.slice(5)).mousedown();
+        window.scrollTo(0, e.target.attributes.alt.value - Math.round(document.documentElement.clientHeight/2) - 18);
+      };
+      var marker_left = function() {
+        var viewer = jQuery('.sh');
+        return Math.round(viewer.offset().left + viewer.outerWidth()) + 1;
+      };
+      jQuery(window).resize(function(e) { Markers.reset() });
+      return {
+        clear: function() {
+          jQuery('.pos-marker').each(function(i, elem) { elem.parentNode.removeChild(elem) });
+        },
+        add: function(elem) {
+          var box = elem.getBoundingClientRect();
+          var t = 'Line ' + elem.id.slice(2);
+          var x = Math.round(box.left + window.pageXOffset - document.documentElement.clientLeft);
+          var y = Math.round(box.top + window.pageYOffset - document.documentElement.clientTop);
+          var yy = scaled_offset(y, x)[0]; // ignore xx by now
+          jQuery(document.body).append('<div class="pos-marker" title="' + t + '" alt="' + y + '" style="top:' + yy + 'px"></div>');
+        },
+        reset: function() {
+          var left = marker_left() + 'px';
+          jQuery('.pos-marker').each(function(i, elem) {
+            var yy = scaled_offset(elem.attributes.alt.value)[0] + 'px';
+            elem.style.top  = yy;
+            elem.style.left = left;
+          });
+        },
+        done: function() {
+          var width  = marker_width  + 'px';
+          var height = marker_height + 'px';
+          var left   = marker_left() + 'px';
+          jQuery('.pos-marker').each(function(i, elem) {
+            elem.style.position = 'fixed';
+            elem.style.cursor   = 'pointer';
+            elem.style.left     = left;
+            elem.style.width    = width;
+            elem.style.height   = height;
+            elem.style.backgroundColor = marker_colors[color_ptr = (color_ptr+1) % marker_colors.length];
+            elem.onclick = marker_click_handler;
+          });
+        }
+      };
+    })();
+
     var show_selected = function(e) {
       var text = window.getSelection().toString().trim();
       if(!text) return;
       text = text.replace(/([{}()[\]\\.?*+^$|=!:~-])/g, '\\$1'); // escape
       var regex1 = /<\/?mark>/g;
       var regex2 = new RegExp('>([^<]*)(' + text + ')([^<]*)<', 'g');
-      $('.blob-code').each(function(i, elem) {
-        elem.innerHTML = elem.innerHTML.replace(regex1, '').replace(regex2, '>$1<mark>$2</mark>$3<');
+      Markers.clear();
+      jQuery('.sh .blob-code').each(function(i, elem) {
+        var html = elem.innerHTML.replace(regex1, '').replace(regex2, '>$1<mark>$2</mark>$3<');
+        if(/<mark>/.test(html)) {
+          Markers.add(elem);
+        }
+        elem.innerHTML = html;
       });
-      $('.sh .link').click(ref_click_handler);
+      Markers.done();
+      jQuery('.sh .link').each(function(i, elem) {
+        elem.onclick      = ref_click_handler;
+        elem.onmouseover  = ref_hover_handler(true);
+        elem.onmouseleave = ref_hover_handler(false);
+      });
     }
-    $(".sh").on('mouseup', show_selected);
+    jQuery(".sh").on('mouseup', show_selected);
 
     //////////////////////////////////////////////////
   }
