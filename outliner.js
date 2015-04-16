@@ -107,9 +107,9 @@
           keyword:   'new in if for while finally yield do return void else break catch instanceof with throw case default try this switch continue typeof delete let yield const class',
           built_in:  'eval isFinite isNaN parseFloat parseInt decodeURI decodeURIComponent encodeURI encodeURIComponent escape unescape arguments require',
           ref_ctor:  /\b(?:(var|let)\s+([$\w]+)|(function\*?)\b\s*([$\w]*)\s*(\([^)]*\))|()([\w$]+)(?=:))/g,
-          comment:  { r: /\/\/.*$/gm,                  css: STYLE.comment,   p:0 },
-          comments: { r: /\/\*[\s\S]*?\*\//gm,         css: STYLE.comments,  p:0 },
-          reg_expr: { r: /\/(?:\\.|[^\/])+\/[a-z]*/g,  css: STYLE.regexp,    p:0 },
+          comment:  { r: /\/\/.*$/gm,                    css: STYLE.comment,   p:0 },
+          comments: { r: /\/\*[\s\S]*?\*\//gm,           css: STYLE.comments,  p:0 },
+          reg_expr: { r: /\/(?:\\.|[^\/\n])+\/[a-z]*/g,  css: STYLE.regexp,    p:0 },
           self_ref: (function () {
             var regex = /\bthis\.([$\w]+)/g;
             return {
