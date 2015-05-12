@@ -96,17 +96,17 @@
               }
             };
           })()
-        },
-        paramlist_regex: ''
+        }
     },
     'JavaScript': { // incomplete
         regex: {
           //type:      'Object Function Boolean Error EvalError InternalError RangeError ReferenceError StopIteration SyntaxError TypeError URIError Number Math Date String RegExp Array Float32Array Float64Array Int16Array Int32Array Int8Array Uint16Array Uint32Array Uint8Array Uint8ClampedArray ArrayBuffer DataView JSON Intl',
           type:      /\b[$_]*[A-Z][$\w]*\b/g, // all literals with leading capital
           constant:  { r: /\b(?:true|false|null|undefined|NaN)\b/g, css: STYLE.symbol, p: 0 },
-          keyword:   'new in if for while finally yield do return void else break catch instanceof with throw case default try this switch continue typeof delete let yield const class',
+          keyword:   'new in if for while finally yield do return void else break catch instanceof with throw case default try this switch continue typeof delete yield export extends from as',
           built_in:  'eval isFinite isNaN parseFloat parseInt decodeURI decodeURIComponent encodeURI encodeURIComponent escape unescape arguments require',
-          ref_ctor:  /\b(?:(var|let)\s+([$\w]+)|(function\*?)\b\s*([$\w]*)\s*(\([^)]*\))|()([\w$]+)(?=:))/g,
+          //ref_ctor:  /\b(?:(var|let|const|class|import)\s+([$\w]+)|(function\*?)\b\s*([$\w]*)\s*(\([^)]*\))|()([\w$]+)(?=:))/g,
+          ref_ctor:  /\b(?:(var|let|const|class|import)\s+([$\w]+)|([$\w]+\*?)\b\s*([$\w]*)\s*(\([^)]*\)(?=\s*{))|()([\w$]+)(?=:))/g,
           comment:  { r: /\/\/.*$/gm,                    css: STYLE.comment,   p:0 },
           comments: { r: /\/\*[\s\S]*?\*\//gm,           css: STYLE.comments,  p:0 },
           reg_expr: { r: /\/(?:\\.|[^\/\n])+\/[a-z]*/g,  css: STYLE.regexp,    p:0 },
@@ -128,7 +128,7 @@
                     colorize('.');
                     var scope = Scopes.current();
                     if(scope.parent && !scope.parent.is_function)
-                      Scopes.nominal.update([res[1]], scope.parent);
+                      Scopes.nominal.update([undefined, res[1]], scope.parent);
                     else
                       colorize(res[1]);
                   };
@@ -140,7 +140,19 @@
             }
           })(),
         }, // end of regex
-        paramlist_regex: /([$\w]+)([^,]*,?\W*)/g,
+        paramlist_rule: /([$\w]+)([^,]*,?\W*)/g,
+        paramlist_skip: /(for|while|switch)/,
+        paramlist_parser: function(owner, paramlist) {
+          if(this.paramlist_skip.test(owner))
+            return parse(paramlist);
+          var rr, r = this.paramlist_rule;
+          while ((rr = r.exec(paramlist)) !== null) {
+            create_nominal([undefined, rr[1]]);
+            colorize(rr[2]);
+            if(rr[2].indexOf(',') < 0) break;
+          }
+          this.paramlist_rule.lastIndex = 0;
+        }
     },
     'Bash': {
       regex: {
@@ -152,8 +164,7 @@
         comment: { r: /#.*/g,         style: {color: 'gray'},   p:0 },
         posvar:  { r: /\$[\d?!#]+/g,  css: STYLE.nominal,       p:0 },
         varsign: { r: /\$(?=\w)/g,    css: STYLE.nominal,       p:0 },
-      },
-      paramlist_regex: ''
+      }
     },
     'Java': { // untested
         regex: {
@@ -162,8 +173,7 @@
           type_ctor: /(?:\b(interface|class|extends|implements)\s+([$\w]+)|(\s+)([$\w]+)(?=\s+=\s+))/g,
           comment:  { r: /\/\/.*$/gm,            css: STYLE.comment,   p:0 },
           comments: { r: /\/\*[\s\S]*?\*\//gm,   css: STYLE.comments,  p:0 },
-        },
-        paramlist_regex: ''
+        }
     },
     'C++': { // untested
       regex: {
@@ -173,8 +183,7 @@
         comment:  { r: /\/\/.*$/gm,            css: STYLE.comment,   p:0 },
         comments: { r: /\/\*[\s\S]*?\*\//gm,   css: STYLE.comments,  p:0 },
         macro:    { r: /^ *#.*/gm,             css: STYLE.macro,     p:0 },
-      },
-      paramlist_regex: ''
+      }
     }
   };
   LANG['Cpp'] = LANG['C'] = LANG['C++'];
@@ -218,17 +227,19 @@
   }
 
   function create_nominal(nominals) {
-    if(nominals[0]) {
+    var owner = nominals[0];
+    var ident = nominals[1];
+    if(ident) {
       var scope = Scopes.current();
-      var name = scope.id + '-' + nominals[0];
+      var name = scope.id + '-' + ident;
       var attr = create_link(name);
       //attr.className = cache.syntax.type_ctor.css + ' ' + name;
       attr.className = STYLE.nominal + ' ' + name;
       attr.name      = name;
-      colorize(nominals[0], undefined, undefined, attr);
-      Scopes.add_nominal(nominals[0]);
+      colorize(ident, undefined, undefined, attr);
+      Scopes.add_nominal(ident);
     }
-    for(var i=1; i<nominals.length; i++) {
+    for(var i=2; i<nominals.length; i++) {
       if(!nominals[i]) continue;
       if(nominals[i].constructor === Function.prototype.constructor) {
         nominals[i]();
@@ -242,17 +253,10 @@
       colorize('(');
       Scopes.create(false, true);
       if(paramlist) { // is nonempty
-        var paramlist_rule = cache.paramlist_regex;
-        if(!paramlist_rule)
+        if(cache.paramlist_parser)
+          cache.paramlist_parser(owner, paramlist);
+        else
           parse(paramlist);
-        else {
-          var rr, r = new RegExp(paramlist_rule);
-          while ((rr = r.exec(paramlist)) !== null) {
-            create_nominal([rr[1]]);
-            //colorize(rr[2]);
-            parse(rr[2]);
-          }
-        }
       }
       colorize(')');
     }
@@ -443,7 +447,7 @@
         colorize(' ');
       }
       if(lexers[ii].update) {
-        if(lexers[ii].update(tokens[ii].slice(1)))
+        if(lexers[ii].update(tokens[ii]))
           matches[matches.length-1] = 0;  // reset searched test for nominal rule
       }else {
         colorize(tokens[ii][1], lexers[ii].css, lexers[ii].style);
@@ -541,14 +545,15 @@
   Scopes.nominal = {
     css:    STYLE.reference,
     update: function(nominals, scope) {
-      var scope = Scopes.lookup(nominals[0], scope);
+      var ident = nominals[1];
+      var scope = Scopes.lookup(ident, scope);
       //if(!scope) return create_nominal(nominals);
-      if(!scope) { colorize(nominals[0]); return false }
-      var name = scope.id + '-' + nominals[0];
+      if(!scope) { colorize(ident); return false; }
+      var name = scope.id + '-' + ident;
       attr = create_link(name);
       attr.onclick = ref_click_handler;
       attr.className = Scopes.nominal.css + ' link ' + name;
-      colorize(nominals[0], undefined, undefined, attr);
+      colorize(ident, undefined, undefined, attr);
       return false;
     },
     p: 2

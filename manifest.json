@@ -1,5 +1,5 @@
 {
-  "name": "GitHub Code Outline Viewer",
+  "name": "GitHub Code Analyzer",
   "version": "0.1",
   "description": "An extension to generate code outline for GitHub",
   "content_scripts": [{
