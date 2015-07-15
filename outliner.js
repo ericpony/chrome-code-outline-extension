@@ -493,7 +493,7 @@
     cache = extend({}, attr);
     cache.codeArea = options['lineno'] ? document.createElement('OL') : document.createElement('UL');
 
-    if(!options['dont-reset']) {
+    if(!options['dont-reset'] || Scopes.nominal.r === undefined) {
       Scopes.nominal.r = '';
       Scopes.reset();
     }
