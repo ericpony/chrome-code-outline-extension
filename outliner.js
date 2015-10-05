@@ -158,12 +158,12 @@
       regex: {
         keyword : 'if then else elif fi for while in do done case esac local set until true false',
         built_in: 'break cd continue eval exec exit export getopts pwd return shift test alias trap bash',
-        ref_ctor: /\b(?:()(\S+)(?==)|(function)\b\s*([$\w]*))/g,
+        ref_ctor: /\b(?:()(\S+)(?==)|(function)\b\s*([$\w]*)|(for)\s+(\w+)(\s+in))/g,
         param1:  { r: /--\w\S+/g,     style: {color: '#393'},   p:0 },
-        param2:  { r: /-\S+/g,        style: {color: '#099'},   p:0 },
+        param2:  { r: /-\S+/g,        style: {color: '#077'},   p:0 },
         comment: { r: /#.*/g,         style: {color: 'gray'},   p:0 },
         posvar:  { r: /\$[\d?!#]+/g,  css: STYLE.nominal,       p:0 },
-        varsign: { r: /\$(?=\w)/g,    css: STYLE.nominal,       p:0 },
+        varsign: { r: /\$(?=\w)/g,    css: STYLE.reference,     p:0 },
       }
     },
     'Java': { // untested
